@@ -16,7 +16,7 @@ with qw( App::DuckPAN::Cmd );
 use MooX::Options protect_argv => 0;
 use Text::Xslate qw(mark_raw);
 use Path::Tiny;
-
+use String::Trim;
 
 sub run {
 	my ($self, @args) = @_;
@@ -24,9 +24,17 @@ sub run {
 	# Check which IA repo we're in...
 	my $type = $self->app->get_ia_type();
 
+	my $entered_name = (@args) ? join(' ', trim(@args)) : "";
+	$entered_name =~ s/\s+//
+	warn "ENTERED_NAME IS: ->$entered_name<-";
+
 	# Instant Answer name as parameter
-	my $entered_name = (@args) ? join(' ', @args) : $self->app->get_reply('Please enter a name for your Instant Answer');
-	$self->app->emit_and_exit(-1, "Must supply a name for your Instant Answer.") unless $entered_name;
+	$entered_name = $self->app->get_reply(
+		'Please enter a name for your Instant Answer. This will be used as the name of your Perl package.',
+		validate => qr/^\w[\w\s\/\:]+$/,
+		error  => "Invalid input. Please enter a properly formatted name for your Instant Answer. Examples: 'My Package', 'My::Package', 'My/Package'."
+	) unless defined $entered_name;
+
 	$entered_name =~ s/\//::/g;    #change "/" to "::" for easier handling
 	my $name = $self->app->phrase_to_camel($entered_name);
 	my ($package_name, $separated_name, $path, $lc_path) = ($name, $name, "", "");
