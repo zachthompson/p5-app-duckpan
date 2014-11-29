@@ -25,7 +25,7 @@ sub run {
 	my $type = $self->app->get_ia_type();
 
 	my $entered_name = (@args) ? join(' ', trim(@args)) : "";
-	$entered_name =~ s/\s+//
+	$entered_name =~ s/\s+//;
 	warn "ENTERED_NAME IS: ->$entered_name<-";
 
 	# Instant Answer name as parameter
