@@ -145,12 +145,25 @@ sub request {
 					}
 					p($to);
 
+					my $answer = uri_unescape($to);
+					my ($success, $res);
+					if($answer =~ /^\{.+\}$/o){
+						$body = $answer;
+						++$success;
+					}
+					else{
 					my $res = $self->ua->request(HTTP::Request->new(
 						GET => $to,
 						[ $rewrite->accept_header ? ("Accept", $rewrite->accept_header) : () ]
 						));
-					if ($res->is_success) {
-						$body = $res->decoded_content;
+						if ($res->is_success) {
+							$body = $res->decoded_content;
+							$response->code($res->code);
+							$response->content_type($res->content_type);
+							++$success;
+						}
+					}
+					if($success){
 						# Encode utf8 api_responses to bytestream for Plack.
 						utf8::encode $body if utf8::is_utf8 $body;
 						warn "Cannot use wrap_jsonp_callback and wrap_string callback at the same time!" if $rewrite->wrap_jsonp_callback && $rewrite->wrap_string_callback;
@@ -163,8 +176,6 @@ sub request {
 							$body =~ s/\R//g;
 							$body = $rewrite->callback.'("'.$body.'");' unless defined $rewrite->missing_envs;
 						}
-						$response->code($res->code);
-						$response->content_type($res->content_type);
 					} else {
 						p($res->status_line, color => { string => 'red' });
 						my $errormsg = (pop @{[split'::', $spice_class]}). ": ".$res->status_line;
